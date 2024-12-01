@@ -1,42 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
-    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <title>Portfolio Website</title>
+    <title>Bus Scheduling and Route Management</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        #controls { padding: 10px; background: #f4f4f4; }
+        #map { flex: 1; }
+    </style>
 </head>
 <body>
-    <header>
-        <a href="#" class="logo">Alex</a>
+    <div id="controls">
+        <h2>Add Bus Schedule</h2>
+        <form id="schedule-form">
+            <label for="start-place">Start Place:</label>
+            <input type="text" id="start-place" name="start-place" required><br>
+            <label for="start-time">Start Time:</label>
+            <input type="time" id="start-time" name="start-time" required><br>
+            <label for="end-place">End Place:</label>
+            <input type="text" id="end-place" name="end-place" required><br>
+            <label for="end-time">End Time:</label>
+            <input type="time" id="end-time" name="end-time" required><br>
+            <button type="submit">Add Schedule</button>
+        </form>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([28.7041, 77.1025], 12);
 
-        <nav>
-            <a href="#" class="active"> Home</a>
-            <a href="#" >Services</a>
-            <a href="#" >Skills</a>
-            <a href="#" >Education</a>
-            <a href="#" >Experience</a>
-            <a href="#" >Contact</a>
-        </nav>
-    </header>
-    <section class="home">
-        <div class="home-img">
-            <img src="main.jpg" alt="">
-        </div>
-        <div class="home-content">
-            <h1>Hi, It's <span>Alex</span></h1>
-            <h3 class="typing-text">I'm a <span></span></h3>
-            <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Minus labore dolores esse. Odit similique doloribus tenetur doloremque, sunt commodi in ipsa repudiandae debitis deleniti blanditiis quibusdam quaerat neque asperiores ea.</p>
-            <div class="social-icons">
-                <a href="#"><i class="fa-brands fa-linkedin"></i></a>
-                <a href="#"><i class="fa-brands fa-github"></i></a>
-                <a href="#"><i class="fa-brands fa-x-twitter"></i></a>
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
-            </div>
-            <a href="#" class="btn">Hire me</a>
-        </div>
-    </section>
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Initialize Geocoder
+        const geocoder = L.Control.Geocoder.nominatim();
+
+        // Handle form submission
+        document.getElementById('schedule-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const startPlace = document.getElementById('start-place').value;
+            const startTime = document.getElementById('start-time').value;
+            const endPlace = document.getElementById('end-place').value;
+            const endTime = document.getElementById('end-time').value;
+
+            // Geocode start place
+            geocoder.geocode(startPlace, function(startResults) {
+                if (startResults.length === 0) {
+                    alert('Start place not found');
+                    return;
+                }
+
+                const startLatLng = startResults[0].center;
+                const startMarker = L.marker(startLatLng).addTo(map)
+                    .bindPopup(`Start Time: ${startTime}`).openPopup();
+
+                // Geocode end place
+                geocoder.geocode(endPlace, function(endResults) {
+                    if (endResults.length === 0) {
+                        alert('End place not found');
+                        return;
+                    }
+
+                    const endLatLng = endResults[0].center;
+                    const endMarker = L.marker(endLatLng).addTo(map)
+                        .bindPopup(`End Time: ${endTime}`).openPopup();
+
+                    // Use Leaflet Routing Machine to create a route
+                    L.Routing.control({
+                        waypoints: [
+                            L.latLng(startLatLng.lat, startLatLng.lng),
+                            L.latLng(endLatLng.lat, endLatLng.lng)
+                        ],
+                        routeWhileDragging: true
+                    }).addTo(map);
+
+                    // Clear the form
+                    e.target.reset();
+                });
+            });
+        });
+    </script>
 </body>
 </html>
